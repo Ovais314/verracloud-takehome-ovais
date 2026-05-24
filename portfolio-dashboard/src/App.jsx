@@ -1,6 +1,9 @@
+import { DashboardPage } from './pages/DashboardPage';
+import './styles/global.css';
+import './styles/dashboard.css';
 
 function App() {
-  return <h1>Portfolio Dashboard</h1>;
+  return <DashboardPage />;
 }
 
 export default App;

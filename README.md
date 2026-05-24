@@ -260,3 +260,60 @@ At 10k **concurrent** users, the first bottlenecks would likely be SQLite and pe
 ## License
 
 Take-home submission — see repository owner for usage terms.
+
+
+
+# Portfolio Holdings Dashboard (Frontend)
+
+React + Redux Toolkit + RTK Query UI for the Portfolio API.
+
+## Prerequisites
+
+- Node.js 18+
+- [Portfolio API](../PortfolioApi) running at `http://localhost:5205`
+
+## Setup
+
+```bash
+cd portfolio-dashboard
+npm install
+cp .env.example .env   # optional — defaults match the API dev URL
+```
+
+## Run
+
+```bash
+# Terminal 1 — API
+cd ../PortfolioApi
+dotnet run
+
+# Terminal 2 — UI
+npm run dev
+```
+
+Open http://localhost:5173
+
+## Features
+
+- **Holdings table** — ticker, quantity, purchase/current price, market value, color-coded P&L, row delete, 5s auto-refresh
+- **Add holding form** — client validation + API error display
+- **Portfolio summary** — total market value, total unrealized P&L, position count
+
+## Project structure
+
+```
+src/
+├── components/     # UI building blocks
+├── pages/          # Route-level views
+├── store/          # Redux store configuration
+├── services/api/   # RTK Query base API + endpoints
+├── hooks/          # Derived state hooks
+├── utils/          # Formatting, validation, errors
+└── styles/         # Global and dashboard CSS
+```
+
+## Configuration
+
+| Variable | Default |
+|----------|---------|
+| `VITE_API_BASE_URL` | `http://localhost:5205` |
