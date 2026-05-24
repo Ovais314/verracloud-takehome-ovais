@@ -24,6 +24,13 @@ public class ExceptionHandlingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        // SignalR negotiate/WebSocket must not be wrapped in API error JSON.
+        if (context.Request.Path.StartsWithSegments("/hubs"))
+        {
+            await _next(context);
+            return;
+        }
+
         try
         {
             await _next(context);

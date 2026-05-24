@@ -53,5 +53,8 @@ public class PriceRefreshBackgroundService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var pricesService = scope.ServiceProvider.GetRequiredService<IPricesService>();
         await pricesService.RefreshPricesAsync(cancellationToken);
+
+        var notifier = scope.ServiceProvider.GetRequiredService<IPortfolioNotificationService>();
+        await notifier.BroadcastHoldingsUpdatedAsync(cancellationToken);
     }
 }

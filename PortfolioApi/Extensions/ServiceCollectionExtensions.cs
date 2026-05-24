@@ -25,7 +25,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPricesRepository, PricesRepository>();
         services.AddScoped<IHoldingsService, HoldingsService>();
         services.AddScoped<IPricesService, PricesService>();
+        services.AddSingleton<IPortfolioNotificationService, PortfolioNotificationService>();
 
+        services.AddSignalR();
         services.AddHostedService<PriceRefreshBackgroundService>();
 
         services.AddFluentValidationAutoValidation();

@@ -9,10 +9,14 @@ namespace PortfolioApi.Controllers;
 public class HoldingsController : ControllerBase
 {
     private readonly IHoldingsService _holdingsService;
+    private readonly IPortfolioNotificationService _notificationService;
 
-    public HoldingsController(IHoldingsService holdingsService)
+    public HoldingsController(
+        IHoldingsService holdingsService,
+        IPortfolioNotificationService notificationService)
     {
         _holdingsService = holdingsService;
+        _notificationService = notificationService;
     }
 
     [HttpGet]
@@ -31,6 +35,7 @@ public class HoldingsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var holding = await _holdingsService.AddAsync(request, cancellationToken);
+        await _notificationService.BroadcastHoldingsUpdatedAsync(cancellationToken);
         return CreatedAtAction(nameof(GetAll), new { id = holding.Id }, holding);
     }
 
@@ -40,6 +45,7 @@ public class HoldingsController : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         await _holdingsService.DeleteAsync(id, cancellationToken);
+        await _notificationService.BroadcastHoldingsUpdatedAsync(cancellationToken);
         return NoContent();
     }
 }

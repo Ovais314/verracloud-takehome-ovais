@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PortfolioApi.Data;
 using PortfolioApi.Extensions;
+using PortfolioApi.Hubs;
 using PortfolioApi.Middleware;
 using Serilog;
 
@@ -48,7 +49,7 @@ try
         await DatabaseSeeder.SeedAsync(context);
     }
 
-    // CORS must run before other middleware so preflight and error responses include headers.
+    app.UseRouting();
     app.UseCors();
     app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -58,11 +59,9 @@ try
         app.UseSwaggerUI();
     }
 
-    // No HTTPS redirect: UI calls http://localhost:5205 (or Vite proxy). A redirect to
-    // https://localhost:7018 is cross-origin and browsers block the response (CORS).
-
     app.UseAuthorization();
     app.MapControllers();
+    app.MapHub<PortfolioHub>("/hubs/portfolio");
 
     await app.RunAsync();
 }

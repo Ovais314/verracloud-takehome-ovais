@@ -9,10 +9,14 @@ namespace PortfolioApi.Controllers;
 public class PricesController : ControllerBase
 {
     private readonly IPricesService _pricesService;
+    private readonly IPortfolioNotificationService _notificationService;
 
-    public PricesController(IPricesService pricesService)
+    public PricesController(
+        IPricesService pricesService,
+        IPortfolioNotificationService notificationService)
     {
         _pricesService = pricesService;
+        _notificationService = notificationService;
     }
 
     [HttpGet]
@@ -28,6 +32,7 @@ public class PricesController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<PriceResponse>>> Refresh(CancellationToken cancellationToken)
     {
         var prices = await _pricesService.RefreshPricesAsync(cancellationToken);
+        await _notificationService.BroadcastHoldingsUpdatedAsync(cancellationToken);
         return Ok(prices);
     }
 }
