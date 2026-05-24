@@ -29,6 +29,16 @@ try
 
     builder.Services.AddPortfolioServices(builder.Configuration);
 
+    builder.Services.AddCors(options =>
+    {
+        options.AddDefaultPolicy(policy =>
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+    });
+
     var app = builder.Build();
 
     using (var scope = app.Services.CreateScope())
@@ -38,6 +48,8 @@ try
         await DatabaseSeeder.SeedAsync(context);
     }
 
+    // CORS must run before other middleware so preflight and error responses include headers.
+    app.UseCors();
     app.UseMiddleware<ExceptionHandlingMiddleware>();
 
     if (app.Environment.IsDevelopment())
@@ -46,7 +58,9 @@ try
         app.UseSwaggerUI();
     }
 
-    app.UseHttpsRedirection();
+    // No HTTPS redirect: UI calls http://localhost:5205 (or Vite proxy). A redirect to
+    // https://localhost:7018 is cross-origin and browsers block the response (CORS).
+
     app.UseAuthorization();
     app.MapControllers();
 
