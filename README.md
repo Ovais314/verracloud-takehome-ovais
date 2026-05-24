@@ -26,7 +26,7 @@ A small demo app inspired by **VerrCloud Bond Navigator**. It lets you manage a 
 ### Step 1 — Get the code
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Ovais314/verracloud-takehome-ovais.git
 cd verracloud-takehome-ovais
 ```
 
