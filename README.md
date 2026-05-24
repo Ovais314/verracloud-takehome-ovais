@@ -63,7 +63,7 @@ Leave this open too. Then open in your browser:
 
 1. Add a holding — e.g. ticker **AAPL**, quantity **10**, purchase price **170**
 2. Check the **summary bar** (total value, total P&L, number of positions)
-3. Watch the table refresh every few seconds as prices move
+3. Confirm the **Live** badge is green, then watch P&L update when prices change (about every 10 seconds) — no manual refresh needed
 
 **Supported tickers for new holdings:** AAPL, MSFT, JPM, T, GS (the ones seeded at startup).
 
@@ -83,8 +83,8 @@ Think of three parts working together:
   Browser (website)          Server (API)              Database (file)
   ----------------          -------------              ----------------
   Table, form, summary  -->  Saves holdings      -->   portfolio.db
-  Refreshes every 5s        Updates prices every 10s
-                            Calculates P&L
+  Live link (SignalR)       Updates prices every 10s
+  Server pushes updates     Calculates P&L, pushes new totals to all browsers
 ```
 
 ### Website (`portfolio-dashboard`)
@@ -94,7 +94,9 @@ Think of three parts working together:
 | **Holdings table** | Lists each position; green/red for profit or loss; delete button |
 | **Add form** | Adds a new position; checks your input before sending |
 | **Summary bar** | Total market value, total P&L, how many positions you have |
-| **Auto-refresh** | Asks the server for latest holdings every **5 seconds** |
+| **Live updates** | Stays connected with **SignalR**; server **pushes** new holdings when prices or positions change |
+| **Live badge** | Shows Connected / Reconnecting / Offline |
+| **Table controls** | Search by ticker, filter by profit/loss, sort columns, paginate (5 / 10 / 25 per page) |
 
 ### Server (`PortfolioApi`)
 
@@ -103,6 +105,7 @@ Think of three parts working together:
 | **API** | Answers requests: list holdings, add, delete, get prices |
 | **Business rules** | No duplicate ticker; quantity and price must be positive; P&L = (current price − what you paid) × quantity |
 | **Price simulator** | Every **10 seconds**, nudges each stock price up or down by up to about 2% |
+| **Real-time hub** | After prices change (or you add/delete), broadcasts fresh holdings to every open browser |
 | **Database** | Two tables: **Holdings** (what you own) and **Prices** (latest simulated price per ticker) |
 
 ### Main API actions (for reference)
@@ -126,17 +129,17 @@ portfolio-dashboard/    → Website code
 
 ## 3. AI Usage Log
 
-This project **used AI on purpose** (Cursor with Claude), as required by the take-home. Below is what worked, what did not, and how the code was still reviewed by hand.
+This project **used AI on purpose** (Cursor), as required by the take-home. Below is what worked, what did not, and how the code was still reviewed by hand.
 
 ### Tools used
 
-- **Cursor (Claude)** — main helper for server, website, fixes, and this README
+- **Cursor** — main helper for server, website, and fixes
 
 ### Examples where AI helped
 
 1. **Server layout** — AI drafted the split between “web layer,” “business logic,” and “database access,” plus the first version of holdings and prices code. I checked the P&L formula and rules (e.g. one row per ticker, only seeded tickers allowed).
 
-2. **Website** — AI built the React screen (table, form, summary) and wiring to call the server every 5 seconds. I fixed gaps found in review (loading states on the summary bar, showing errors when delete fails).
+2. **Website** — AI built the React screen (table, form, summary). Later replaced **5-second polling** with **SignalR** so the server pushes updates when prices change (closer to how real trading dashboards work).
 
 3. **Checklist against requirements** — AI compared the project to the spec (10s price updates, five seed stocks, validation messages). Missing pieces were added in the same pass.
 
@@ -172,14 +175,18 @@ Rough plan:
 2. **More than one server** — Run several copies behind a load balancer so no single machine does all the work.
 3. **One price updater** — Only one background job should change prices, not every server copy.
 4. **Faster reads** — Cache latest prices in memory (e.g. Redis) so listing holdings does not hammer the database.
-5. **Smarter website updates** — Push live updates to the browser instead of asking every 5 seconds; host the static website on a CDN.
+5. **Scale SignalR** — Use **Azure SignalR Service** or Redis backplane so many API servers share one real-time layer; host the static website on a CDN.
 6. **Security and limits** — Login, HTTPS, rate limits, monitoring.
 
 The first pain points at huge scale would be the small database file and every server trying to update prices at once.
 
 ### What would you do with 2 more hours?
 
-Add **automated tests** for the important rules: P&L math, duplicate ticker rejection, and a simple “add a holding and see it in the table” check on the website. That protects the core behavior when the project grows.
+Add **automated tests** for P&L math and holdings CRUD, plus **server-side paging** (`GET /api/holdings?page=&pageSize=&ticker=&pnl=`) once portfolios grow past a few dozen rows — client-side filter/page is fine for the demo, but production loads should not ship entire portfolios on every SignalR push.
+
+### Holdings table: filter & pagination (production note)
+
+The table filters and pages **in the browser** on the data you already have. That keeps SignalR simple (one broadcast, UI stays snappy for small lists). For large portfolios, filters would move to the API and live updates would trigger a **refetch** with the current query, not a full dump every 10 seconds.
 
 ---
 
@@ -188,9 +195,11 @@ Add **automated tests** for the important rules: P&L math, duplicate ticker reje
 | Topic | Detail |
 |-------|--------|
 | Server stack | .NET 8, ASP.NET Core, EF Core, SQLite, FluentValidation, Serilog, Swagger |
-| Website stack | React 19, Vite, Redux Toolkit, RTK Query |
+| Website stack | React 19, Vite, Redux Toolkit, RTK Query, `@microsoft/signalr` |
+| Real-time | Hub `/hubs/portfolio`, event `HoldingsUpdated`; Vite proxies `/hubs` with WebSockets |
+| Table UX | `useHoldingsTableControls` — client filter/sort/page; see hook comment for server-side scale-up |
 | P&L | `(currentPrice - purchasePrice) × quantity` on the server |
-| Dev API URL | Website proxies `/api` → `http://localhost:5205` (see `portfolio-dashboard/vite.config.js`) |
+| Dev proxy | `/api` and `/hubs` → `http://localhost:5205` (`portfolio-dashboard/vite.config.js`) |
 | Reset database | Stop server, delete `PortfolioApi/portfolio.db`, run again |
 
 ---
