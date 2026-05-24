@@ -1,6 +1,26 @@
 @PortfolioApi_HostAddress = http://localhost:5205
 
-GET {{PortfolioApi_HostAddress}}/weatherforecast/
+### Get all holdings
+GET {{PortfolioApi_HostAddress}}/api/holdings
 Accept: application/json
 
-###
+### Add holding
+POST {{PortfolioApi_HostAddress}}/api/holdings
+Content-Type: application/json
+
+{
+  "ticker": "AAPL",
+  "quantity": 10,
+  "purchasePrice": 170.00
+}
+
+### Delete holding
+DELETE {{PortfolioApi_HostAddress}}/api/holdings/1
+
+### Get all prices
+GET {{PortfolioApi_HostAddress}}/api/prices
+Accept: application/json
+
+### Refresh prices manually
+POST {{PortfolioApi_HostAddress}}/api/prices/refresh
+Accept: application/json
