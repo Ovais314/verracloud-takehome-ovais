@@ -143,17 +143,17 @@ This project **used AI on purpose** (Cursor), as required by the take-home. Belo
 
 3. **Checklist against requirements** — AI compared the project to the spec (10s price updates, five seed stocks, validation messages). Missing pieces were added in the same pass.
 
-### Example where AI was wrong — and how we fixed it
+### Example where AI was wrong — and how I fixed it
 
 **Problem:** The website could not load data. The browser tried `http://localhost:5205`, the server redirected to `https://localhost:7018`, and the browser blocked the response for security reasons (CORS).
 
 **Why AI’s first fixes were not enough:** Adding “allow browser access” settings alone did not fix the redirect to a different address.
 
-**What actually worked:** Run the server on plain **http** port 5205, stop forcing HTTPS in local dev, and let the website talk through its built-in **proxy** so everything stays on one address during development.
+**What actually worked:** I ran the server on plain **http** port 5205, stop forcing HTTPS in local dev, and let the website talk through its built-in **proxy** so everything stays on one address during development.
 
 **Lesson:** Run the app after every “fix” and look at the browser network tab — do not trust a plausible-sounding answer without testing.
 
-### How we use AI responsibly
+### How I use AI responsibly
 
 - Treat suggestions as a **first draft**
 - Read changes and run the server + website locally
