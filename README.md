@@ -1,319 +1,200 @@
 # Portfolio Holdings Dashboard
 
-A .NET 8 Web API backend for managing portfolio holdings, tracking live (simulated) stock prices, and calculating unrealized profit and loss. This repository contains the **backend API**; use **Swagger UI** as the interactive client for local development and demos.
+A small demo app inspired by **VerrCloud Bond Navigator**. It lets you manage a simple stock portfolio: add positions, see current value, and watch **profit or loss** update as prices change (simulated, not real market data).
 
-## Prerequisites
+**What you get**
 
-| Tool | Version |
-|------|---------|
-| [.NET SDK](https://dotnet.microsoft.com/download) | 8.0+ |
+- A **website** you open in the browser (table, add form, summary totals)
+- A **server** that stores data, updates prices, and does the math
+- A **database file** on disk so data survives restarts
 
-Optional: [EF Core CLI](https://learn.microsoft.com/en-us/ef/core/cli/dotnet) for manual migrations.
-
-```bash
-dotnet tool install --global dotnet-ef
-```
+**Built with:** C#/.NET (server), React (website), SQLite (storage). AI tools (Cursor) were used during development — see [AI Usage Log](#3-ai-usage-log) below.
 
 ---
 
-## 1. Setup & Run (< 5 minutes)
+## What you need installed
 
-### Clone the repository
+| Software | Why |
+|----------|-----|
+| [.NET 8 SDK](https://dotnet.microsoft.com/download) | Runs the server |
+| [Node.js 18+](https://nodejs.org/) | Runs the website in dev mode |
+
+---
+
+## 1. Setup & Run (under 5 minutes)
+
+### Step 1 — Get the code
 
 ```bash
 git clone <repository-url>
 cd verracloud-takehome-ovais
 ```
 
-### Run the backend
+### Step 2 — Start the server (first terminal)
 
 ```bash
 cd PortfolioApi
 dotnet restore
-dotnet run
+dotnet run --launch-profile http
 ```
 
-On first startup the API will:
+Leave this window open. The first time it runs, it will:
 
-- Apply EF Core migrations to `portfolio.db` (SQLite, created in `PortfolioApi/`)
-- Seed price data for **AAPL**, **MSFT**, **JPM**, **T**, **GS**
-- Start a background service that refreshes prices every **10 seconds**
+- Create a local database file (`portfolio.db`)
+- Load sample prices for **AAPL, MSFT, JPM, T, GS**
+- Update those prices automatically every **10 seconds**
 
-| Resource | URL |
-|----------|-----|
-| Swagger UI (interactive API) | http://localhost:5205/swagger |
-| API base URL | http://localhost:5205 |
+**Server address:** http://localhost:5205  
+**API docs (optional):** http://localhost:5205/swagger
 
-### Run the frontend
-
-This repository does **not** include a separate SPA frontend. For take-home review and local testing:
-
-1. Start the backend (above).
-2. Open **Swagger UI** at http://localhost:5205/swagger to list holdings, add positions, view prices, and trigger a manual refresh.
-
-If you add a frontend (e.g. React/Vite) in a sibling folder, point it at the API:
+### Step 3 — Start the website (second terminal)
 
 ```bash
-# Example — after creating a frontend project
-cd portfolio-ui
+cd portfolio-dashboard
 npm install
 npm run dev
 ```
 
-Set the API base URL in your frontend env (e.g. `VITE_API_URL=http://localhost:5205`) and enable CORS on the API if the UI runs on a different origin.
+Leave this open too. Then open in your browser:
 
-### Quick smoke test
+**http://localhost:5173**
 
-```bash
-# List seeded prices
-curl http://localhost:5205/api/prices
+### Step 4 — Try it
 
-# Add a holding
-curl -X POST http://localhost:5205/api/holdings \
-  -H "Content-Type: application/json" \
-  -d "{\"ticker\":\"AAPL\",\"quantity\":10,\"purchasePrice\":170.00}"
+1. Add a holding — e.g. ticker **AAPL**, quantity **10**, purchase price **170**
+2. Check the **summary bar** (total value, total P&L, number of positions)
+3. Watch the table refresh every few seconds as prices move
 
-# List holdings with P&L
-curl http://localhost:5205/api/holdings
-```
+**Supported tickers for new holdings:** AAPL, MSFT, JPM, T, GS (the ones seeded at startup).
 
-Sample requests are also in `PortfolioApi/PortfolioApi.http`.
+### If something does not load
 
-### Database migrations (optional manual run)
-
-Migrations run automatically on startup. To apply manually:
-
-```bash
-cd PortfolioApi
-dotnet ef database update
-```
-
-To create a new migration after model changes:
-
-```bash
-dotnet ef migrations add <MigrationName> --output-dir Data/Migrations
-```
+- Make sure the **server** (step 2) is running before the website
+- Use `dotnet run --launch-profile http` (not only `dotnet run` with HTTPS) so the browser and server talk on the same setup
+- Restart both terminals after pulling new code
 
 ---
 
 ## 2. Architecture Overview
 
-The API follows a **layered architecture**: HTTP concerns stay in controllers; business rules live in services; data access is isolated in repositories; EF Core handles persistence.
-
-```mermaid
-flowchart TB
-    subgraph clients [Clients]
-        Swagger[Swagger UI]
-        HTTP[HTTP / curl]
-    end
-
-    subgraph api [ASP.NET Core]
-        MW[ExceptionHandlingMiddleware]
-        HC[HoldingsController]
-        PC[PricesController]
-        HS[HoldingsService]
-        PS[PricesService]
-        HR[HoldingsRepository]
-        PR[PricesRepository]
-        BG[PriceRefreshBackgroundService]
-    end
-
-    subgraph data [Data]
-        CTX[PortfolioDbContext]
-        DB[(SQLite portfolio.db)]
-    end
-
-    Swagger --> MW
-    HTTP --> MW
-    MW --> HC
-    MW --> PC
-    HC --> HS
-    PC --> PS
-    HS --> HR
-    PS --> PR
-    HR --> CTX
-    PR --> CTX
-    BG -->|scoped every 10s| PS
-    CTX --> DB
-```
-
-| Layer | Responsibility |
-|-------|----------------|
-| **Controllers** | Routing, HTTP status codes, request/response DTOs |
-| **Services** | Validation, P&L calculation, price refresh logic (±2%) |
-| **Repositories** | Async CRUD against `Holdings` and `Prices` |
-| **Data** | `PortfolioDbContext`, migrations, seed data |
-| **Middleware** | Global JSON error handling (400 / 404 / 500) |
-| **BackgroundServices** | Periodic price refresh via scoped `IPricesService` |
-
-### API endpoints
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/holdings` | All holdings with `currentPrice`, `marketValue`, `unrealizedPnL` |
-| `POST` | `/api/holdings` | Add holding (validated ticker, quantity, purchase price) |
-| `DELETE` | `/api/holdings/{id}` | Remove holding (404 if not found) |
-| `GET` | `/api/prices` | All current prices |
-| `POST` | `/api/prices/refresh` | Manually apply ±2% price simulation |
-
-### Project layout
+Think of three parts working together:
 
 ```
-PortfolioApi/
-├── Controllers/          # HTTP API
-├── Services/             # Business logic
-├── Repositories/         # Data access interfaces + implementations
-├── Models/               # EF entities
-├── DTOs/                 # API contracts
-├── Data/                 # DbContext, seeder, migrations
-├── Middleware/           # Exception handling
-├── BackgroundServices/   # 10s price refresh
-├── Validators/           # FluentValidation rules
-└── Extensions/           # DI registration
+  Browser (website)          Server (API)              Database (file)
+  ----------------          -------------              ----------------
+  Table, form, summary  -->  Saves holdings      -->   portfolio.db
+  Refreshes every 5s        Updates prices every 10s
+                            Calculates P&L
+```
+
+### Website (`portfolio-dashboard`)
+
+| Part | What it does |
+|------|----------------|
+| **Holdings table** | Lists each position; green/red for profit or loss; delete button |
+| **Add form** | Adds a new position; checks your input before sending |
+| **Summary bar** | Total market value, total P&L, how many positions you have |
+| **Auto-refresh** | Asks the server for latest holdings every **5 seconds** |
+
+### Server (`PortfolioApi`)
+
+| Part | What it does |
+|------|----------------|
+| **API** | Answers requests: list holdings, add, delete, get prices |
+| **Business rules** | No duplicate ticker; quantity and price must be positive; P&L = (current price − what you paid) × quantity |
+| **Price simulator** | Every **10 seconds**, nudges each stock price up or down by up to about 2% |
+| **Database** | Two tables: **Holdings** (what you own) and **Prices** (latest simulated price per ticker) |
+
+### Main API actions (for reference)
+
+| Action | What it means |
+|--------|----------------|
+| List holdings | Everything you own, with current price and P&L |
+| Add holding | New row: ticker, how many shares, purchase price |
+| Delete holding | Remove one position by id |
+| List prices | Current simulated prices for all tickers |
+| Refresh prices | Manually bump prices (also happens automatically every 10s) |
+
+### Folders in this repo
+
+```
+PortfolioApi/           → Server code
+portfolio-dashboard/    → Website code
 ```
 
 ---
 
 ## 3. AI Usage Log
 
-Document how AI assisted this submission. Update dates and details to match your actual session.
+This project **used AI on purpose** (Cursor with Claude), as required by the take-home. Below is what worked, what did not, and how the code was still reviewed by hand.
 
-| Date | Tool | How it was used | Human review |
-|------|------|-----------------|--------------|
-| 2026-05-24 | Cursor (Claude) | Scaffolded the full backend from the take-home spec: EF Core models, repositories, services, controllers, middleware, background service, migrations, and `Program.cs` wiring | Reviewed structure, naming, and business rules; verified `dotnet build` and local `dotnet run` |
+### Tools used
 
+- **Cursor (Claude)** — main helper for server, website, fixes, and this README
 
-### What AI generated
+### Examples where AI helped
 
-- Layered project structure and most C# source files
-- NuGet package choices (EF Core SQLite, FluentValidation, Serilog, Swagger)
-- Initial EF migration and database seeder
-- DI registration and hosted background service pattern
+1. **Server layout** — AI drafted the split between “web layer,” “business logic,” and “database access,” plus the first version of holdings and prices code. I checked the P&L formula and rules (e.g. one row per ticker, only seeded tickers allowed).
 
-### What was verified manually
+2. **Website** — AI built the React screen (table, form, summary) and wiring to call the server every 5 seconds. I fixed gaps found in review (loading states on the summary bar, showing errors when delete fails).
 
-- Build succeeds with zero errors
-- API starts, migrates DB, seeds five tickers
-- Holdings CRUD and price refresh behavior
-- Error responses for duplicate ticker and invalid input
+3. **Checklist against requirements** — AI compared the project to the spec (10s price updates, five seed stocks, validation messages). Missing pieces were added in the same pass.
 
-### Principles followed when using AI
+### Example where AI was wrong — and how we fixed it
 
-- Treated AI output as a **first draft**; did not commit without reading diffs
-- Kept scope to the existing `PortfolioApi` project (no new solution)
-- Ran the app locally to confirm behavior matches the spec
+**Problem:** The website could not load data. The browser tried `http://localhost:5205`, the server redirected to `https://localhost:7018`, and the browser blocked the response for security reasons (CORS).
+
+**Why AI’s first fixes were not enough:** Adding “allow browser access” settings alone did not fix the redirect to a different address.
+
+**What actually worked:** Run the server on plain **http** port 5205, stop forcing HTTPS in local dev, and let the website talk through its built-in **proxy** so everything stays on one address during development.
+
+**Lesson:** Run the app after every “fix” and look at the browser network tab — do not trust a plausible-sounding answer without testing.
+
+### How we use AI responsibly
+
+- Treat suggestions as a **first draft**
+- Read changes and run the server + website locally
+- Keep final say on structure and behavior
 
 ---
 
 ## 4. Design Decisions
 
-### Why did you structure the backend the way you did?
+### Why is the server split into layers?
 
-**Separation of concerns.** Controllers only deal with HTTP; services own business rules (P&L, duplicate ticker checks, supported tickers); repositories encapsulate EF Core queries. That keeps each layer testable and easy to change without rippling through the app.
+So each job has one home: the web layer handles requests, the middle layer holds rules and math, the data layer talks to the database. That makes the code easier to test, change, and explain — the same pattern used on larger products.
 
-**Repository + service pattern.** Interfaces (`IHoldingsRepository`, `IPricesRepository`, `IHoldingsService`, `IPricesService`) make unit testing straightforward and hide persistence details from API code. This is a common enterprise pattern interviewers and teams expect on growing codebases.
+### How would this handle 10,000 users at once?
 
-**DTOs at the boundary.** Entities (`Holding`, `Price`) are not exposed directly. Response DTOs include computed fields (`marketValue`, `unrealizedPnL`) so clients get a stable contract without leaking ORM shapes.
+Rough plan:
 
-**Cross-cutting middleware.** A single exception handler returns consistent JSON (`ErrorResponse`) instead of scattering try/catch in every controller.
+1. **Bigger database** — SQLite is fine for a demo; real load needs PostgreSQL or similar, with room to grow and backup.
+2. **More than one server** — Run several copies behind a load balancer so no single machine does all the work.
+3. **One price updater** — Only one background job should change prices, not every server copy.
+4. **Faster reads** — Cache latest prices in memory (e.g. Redis) so listing holdings does not hammer the database.
+5. **Smarter website updates** — Push live updates to the browser instead of asking every 5 seconds; host the static website on a CDN.
+6. **Security and limits** — Login, HTTPS, rate limits, monitoring.
 
-**Background refresh with scoped services.** `PriceRefreshBackgroundService` creates a scope per tick so `DbContext` and repositories remain thread-safe and aligned with ASP.NET Core DI lifetimes.
+The first pain points at huge scale would be the small database file and every server trying to update prices at once.
 
-**SQLite for the take-home.** Zero external dependencies for reviewers: clone, `dotnet run`, done. Production would swap the provider via configuration, not restructure layers.
+### What would you do with 2 more hours?
 
-### How would you scale this if 10,000 users were hitting it simultaneously?
-
-**1. Replace SQLite with a managed database**  
-Use **PostgreSQL** or **SQL Server** with connection pooling, read replicas for heavy read traffic (`GET /api/holdings`, `GET /api/prices`), and proper indexing on `Holdings.Ticker` and `Prices.Ticker`.
-
-**2. Scale the API horizontally**  
-Run multiple stateless API instances behind a **load balancer** (Azure App Service, AWS ALB, Kubernetes). No in-memory session state; all instances share the database.
-
-**3. Decouple price updates from request path**  
-The 10-second refresh should not run N times on N instances. Move price simulation to a **single worker** or **scheduled job** (Azure Functions, Hangfire, message consumer) that writes to the DB; APIs only read prices. Optionally cache latest prices in **Redis** with short TTL for read-heavy endpoints.
-
-**4. Caching**  
-Cache `GET /api/prices` (and optionally aggregated holdings) in Redis. Invalidate or short TTL (1–5s) so P&L stays fresh without hammering the database on every request.
-
-**5. Async and resilience**  
-Keep async end-to-end; add **timeouts**, **retries**, and **circuit breakers** for any external market-data APIs if real feeds replace the simulator.
-
-**6. Rate limiting and CDN**  
-Apply rate limiting per API key/IP at the gateway. Serve a static frontend from a **CDN** so 10k users do not hit the API for assets.
-
-**7. Observability**  
-Structured logging (Serilog → Application Insights / ELK), health checks (`/health`), metrics on request latency and DB pool usage, and alerts on error rate.
-
-**8. Security**  
-Authentication (JWT/OAuth), HTTPS everywhere, secrets in Key Vault, and least-privilege DB accounts.
-
-At 10k **concurrent** users, the first bottlenecks would likely be SQLite and per-instance background refresh; fixing those two (shared DB + centralized price worker + horizontal API scale) is the highest-impact path.
+Add **automated tests** for the important rules: P&L math, duplicate ticker rejection, and a simple “add a holding and see it in the table” check on the website. That protects the core behavior when the project grows.
 
 ---
 
-## Tech stack
+## For developers (short technical notes)
 
-- .NET 8, ASP.NET Core Web API  
-- Entity Framework Core 8 + SQLite  
-- FluentValidation, Serilog, Swashbuckle (Swagger)
+| Topic | Detail |
+|-------|--------|
+| Server stack | .NET 8, ASP.NET Core, EF Core, SQLite, FluentValidation, Serilog, Swagger |
+| Website stack | React 19, Vite, Redux Toolkit, RTK Query |
+| P&L | `(currentPrice - purchasePrice) × quantity` on the server |
+| Dev API URL | Website proxies `/api` → `http://localhost:5205` (see `portfolio-dashboard/vite.config.js`) |
+| Reset database | Stop server, delete `PortfolioApi/portfolio.db`, run again |
+
+---
 
 ## License
 
 Take-home submission — see repository owner for usage terms.
-
-
-
-# Portfolio Holdings Dashboard (Frontend)
-
-React + Redux Toolkit + RTK Query UI for the Portfolio API.
-
-## Prerequisites
-
-- Node.js 18+
-- [Portfolio API](../PortfolioApi) running at `http://localhost:5205`
-
-## Setup
-
-```bash
-cd portfolio-dashboard
-npm install
-cp .env.example .env   # optional — defaults match the API dev URL
-```
-
-## Run
-
-```bash
-# Terminal 1 — API
-cd ../PortfolioApi
-dotnet run
-
-# Terminal 2 — UI
-npm run dev
-```
-
-Open http://localhost:5173
-
-## Features
-
-- **Holdings table** — ticker, quantity, purchase/current price, market value, color-coded P&L, row delete, 5s auto-refresh
-- **Add holding form** — client validation + API error display
-- **Portfolio summary** — total market value, total unrealized P&L, position count
-
-## Project structure
-
-```
-src/
-├── components/     # UI building blocks
-├── pages/          # Route-level views
-├── store/          # Redux store configuration
-├── services/api/   # RTK Query base API + endpoints
-├── hooks/          # Derived state hooks
-├── utils/          # Formatting, validation, errors
-└── styles/         # Global and dashboard CSS
-```
-
-## Configuration
-
-| Variable | Default |
-|----------|---------|
-| `VITE_API_BASE_URL` | `http://localhost:5205` |
