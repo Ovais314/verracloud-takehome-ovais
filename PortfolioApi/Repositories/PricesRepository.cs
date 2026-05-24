@@ -38,7 +38,11 @@ public class PricesRepository : IPricesRepository
 
     public async Task UpdatePricesAsync(IReadOnlyList<Price> prices, CancellationToken cancellationToken = default)
     {
-        _ = prices;
+        foreach (var price in prices)
+        {
+            _context.Entry(price).State = EntityState.Modified;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
     }
 }
