@@ -1,14 +1,15 @@
 import { useGetHoldingsQuery } from '../services/api/holdingsApi';
-import { HOLDINGS_POLL_INTERVAL_MS } from '../services/api/config';
 import { usePortfolioSummary } from '../hooks/usePortfolioSummary';
+import { useHoldingsRealtime } from '../hooks/useHoldingsRealtime';
 import { PortfolioSummary } from '../components/PortfolioSummary';
 import { AddHoldingForm } from '../components/AddHoldingForm';
 import { HoldingsTable } from '../components/HoldingsTable';
+import { LiveStatusBadge } from '../components/LiveStatusBadge';
 
 export function DashboardPage() {
-  const holdingsQuery = useGetHoldingsQuery(undefined, {
-    pollingInterval: HOLDINGS_POLL_INTERVAL_MS,
-  });
+  const connectionStatus = useHoldingsRealtime();
+
+  const holdingsQuery = useGetHoldingsQuery();
 
   const { data: holdings = [] } = holdingsQuery;
   const summary = usePortfolioSummary(holdings);
@@ -16,10 +17,16 @@ export function DashboardPage() {
   return (
     <div className="dashboard">
       <header className="dashboard__header">
-        <h1 className="dashboard__title">Portfolio Holdings Dashboard</h1>
-        <p className="dashboard__subtitle">
-          Live positions with simulated price updates from the API
-        </p>
+        <div className="dashboard__header-row">
+          <div>
+            <h1 className="dashboard__title">Portfolio Holdings Dashboard</h1>
+            <p className="dashboard__subtitle">
+              Live positions — prices update on the server and push to your
+              screen instantly
+            </p>
+          </div>
+          <LiveStatusBadge status={connectionStatus} />
+        </div>
       </header>
 
       <PortfolioSummary
@@ -54,7 +61,10 @@ export function DashboardPage() {
               <h2 className="panel__title">Holdings</h2>
             </header>
             <div className="panel__body">
-              <HoldingsTable holdingsQuery={holdingsQuery} />
+              <HoldingsTable
+                holdingsQuery={holdingsQuery}
+                connectionStatus={connectionStatus}
+              />
             </div>
           </section>
         </main>

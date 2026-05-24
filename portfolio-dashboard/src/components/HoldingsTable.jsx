@@ -5,7 +5,14 @@ import { parseApiError } from '../utils/errors';
 import { LoadingState } from './LoadingState';
 import { ErrorState } from './ErrorState';
 
-export function HoldingsTable({ holdingsQuery }) {
+const LIVE_STATUS_HINT = {
+  connected: 'Updates pushed from server (SignalR)',
+  connecting: 'Connecting for live updates…',
+  reconnecting: 'Reconnecting…',
+  disconnected: 'Live updates unavailable — refresh the page',
+};
+
+export function HoldingsTable({ holdingsQuery, connectionStatus = 'disconnected' }) {
   const {
     data: holdings = [],
     isLoading,
@@ -50,7 +57,7 @@ export function HoldingsTable({ holdingsQuery }) {
     <div className="holdings-panel">
       <div className="holdings-panel__meta">
         <span className="holdings-panel__refresh">
-          {isFetching ? 'Refreshing…' : 'Auto-refresh every 5s'}
+          {isFetching ? 'Updating…' : LIVE_STATUS_HINT[connectionStatus]}
         </span>
       </div>
 
