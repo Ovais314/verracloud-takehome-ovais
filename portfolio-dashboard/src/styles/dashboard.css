@@ -232,6 +232,226 @@
   color: #fca5a5;
 }
 
+.holdings-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.holdings-toolbar__count {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  flex: 1 1 auto;
+  min-width: 10rem;
+}
+
+.holdings-toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex: 0 1 auto;
+  margin-left: auto;
+}
+
+.holdings-toolbar__control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 7.5rem;
+}
+
+.holdings-toolbar__control--narrow {
+  min-width: 5.25rem;
+}
+
+.holdings-toolbar__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.holdings-toolbar__input,
+.holdings-toolbar__select {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.holdings-toolbar__input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.75;
+}
+
+.holdings-toolbar__input:hover,
+.holdings-toolbar__select:hover {
+  border-color: #3d4f68;
+}
+
+.holdings-toolbar__input:focus,
+.holdings-toolbar__select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+.holdings-toolbar__select-wrap {
+  position: relative;
+  display: block;
+}
+
+.holdings-toolbar__select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: -0.2rem;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.holdings-toolbar__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+
+.holdings-toolbar__select option {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+}
+
+.holdings-toolbar__clear {
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  background: var(--color-surface-elevated);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  align-self: flex-end;
+  white-space: nowrap;
+}
+
+.holdings-toolbar__clear:hover {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+@media (max-width: 640px) {
+  .holdings-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .holdings-toolbar__filters {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+}
+
+.holdings-table__sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.holdings-table__sort-btn:hover {
+  color: var(--color-text);
+}
+
+.sort-indicator {
+  font-size: 0.65rem;
+  opacity: 0.9;
+}
+
+.sort-indicator--idle {
+  opacity: 0.35;
+}
+
+.holdings-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.holdings-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.holdings-pagination__btn {
+  padding: 0.4rem 0.75rem;
+  background: var(--color-surface-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+}
+
+.holdings-pagination__btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.holdings-pagination__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.holdings-pagination__page {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.empty-state__link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}
+
 .table-wrapper {
   overflow-x: auto;
 }
