@@ -10,13 +10,15 @@ export function HoldingsTablePagination({
     return null;
   }
 
+  const visibleCount = rangeEnd - rangeStart + 1;
+
   return (
     <nav
       className="holdings-pagination"
       aria-label="Holdings table pagination"
     >
-      <span className="holdings-pagination__range">
-        {rangeStart}–{rangeEnd} of {totalCount}
+      <span className="holdings-pagination__range" aria-live="polite">
+        Showing {visibleCount} of {totalCount} positions
       </span>
 
       <div className="holdings-pagination__controls">

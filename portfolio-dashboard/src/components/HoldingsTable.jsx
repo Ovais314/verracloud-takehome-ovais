@@ -107,8 +107,6 @@ export function HoldingsTable({ holdingsQuery, connectionStatus = 'disconnected'
             onPnlFilterChange={controls.setPnlFilter}
             pageSize={controls.pageSize}
             onPageSizeChange={controls.setPageSize}
-            totalCount={controls.totalCount}
-            totalHoldings={controls.totalHoldings}
             hasActiveFilters={controls.hasActiveFilters}
             onClearFilters={controls.clearFilters}
           />

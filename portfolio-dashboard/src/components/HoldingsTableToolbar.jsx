@@ -7,19 +7,11 @@ export function HoldingsTableToolbar({
   onPnlFilterChange,
   pageSize,
   onPageSizeChange,
-  totalCount,
-  totalHoldings,
   hasActiveFilters,
   onClearFilters,
 }) {
   return (
     <div className="holdings-toolbar">
-      <p className="holdings-toolbar__count" aria-live="polite">
-        Showing <strong>{totalCount}</strong> of <strong>{totalHoldings}</strong>{' '}
-        positions
-        {hasActiveFilters ? ' (filtered)' : ''}
-      </p>
-
       <div className="holdings-toolbar__filters">
         <label className="holdings-toolbar__control">
           <span className="holdings-toolbar__label">Ticker</span>
