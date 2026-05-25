@@ -398,6 +398,12 @@ MSBuild_Logs/
 # BeatPulse healthcheck temp database
 healthchecksdb
 
+# Local SQLite database (created on first dotnet run via EF migrations)
+PortfolioApi/portfolio.db
+PortfolioApi/portfolio.db-shm
+PortfolioApi/portfolio.db-wal
+PortfolioApi/portfolio.db-journal
+
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
 
