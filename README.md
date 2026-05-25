@@ -198,7 +198,8 @@ The table filters and pages **in the browser** on the data you already have. Tha
 | Website stack | React 19, Vite, Redux Toolkit, RTK Query, `@microsoft/signalr` |
 | Real-time | Hub `/hubs/portfolio`, event `HoldingsUpdated`; Vite proxies `/hubs` with WebSockets |
 | Table UX | `useHoldingsTableControls` — client filter/sort/page; see hook comment for server-side scale-up |
-| P&L | `(currentPrice - purchasePrice) × quantity` on the server |
+| P&L | `(currentPrice - purchasePrice) × quantity` on the server (`HoldingValuation`) |
+| Unit tests | `dotnet test PortfolioApi.Tests/PortfolioApi.Tests.csproj` — P&L math + `HoldingsService` rules |
 | Dev proxy | `/api` and `/hubs` → `http://localhost:5205` (`portfolio-dashboard/vite.config.js`) |
 | Reset database | Stop server, delete `PortfolioApi/portfolio.db`, run again |
 

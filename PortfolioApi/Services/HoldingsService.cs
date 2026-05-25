@@ -89,12 +89,7 @@ public class HoldingsService : IHoldingsService
 
     private static HoldingResponse MapToResponse(Holding holding, IReadOnlyDictionary<string, Price> priceLookup)
     {
-        var currentPrice = priceLookup.TryGetValue(holding.Ticker, out var price)
-            ? price.CurrentPrice
-            : 0m;
-
-        var marketValue = currentPrice * holding.Quantity;
-        var unrealizedPnL = (currentPrice - holding.PurchasePrice) * holding.Quantity;
+        var (currentPrice, marketValue, unrealizedPnL) = HoldingValuation.FromHolding(holding, priceLookup);
 
         return new HoldingResponse
         {
