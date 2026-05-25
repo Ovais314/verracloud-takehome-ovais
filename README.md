@@ -234,3 +234,4 @@ The table filters and pages **in the browser** on the data you already have. Tha
 ## License
 
 Take-home submission — see repository owner for usage terms.
+
