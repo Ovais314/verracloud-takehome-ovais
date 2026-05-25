@@ -62,10 +62,21 @@ Leave this open too. Then open in your browser:
 ### Step 4 — Try it
 
 1. Add a holding — e.g. ticker **AAPL**, quantity **10**, purchase price **170**
-2. Check the **summary bar** (total value, total P&L, number of positions)
-3. Confirm the **Live** badge is green, then watch P&L update when prices change (about every 10 seconds) — no manual refresh needed
+2. Check the **summary bar** (total market value, total unrealized P&L, position count)
+3. Use the holdings table filters (ticker search, P&L filter, rows per page) and pagination at the bottom (`Showing X of Y positions`)
+4. Confirm the **Live** badge is green, then watch P&L update when prices change (about every 10 seconds) — no manual refresh needed
 
 **Supported tickers for new holdings:** AAPL, MSFT, JPM, T, GS (the ones seeded at startup).
+
+### Step 5 — Run unit tests (optional)
+
+From the repo root (stop the running API first if the build says a file is locked):
+
+```bash
+dotnet test PortfolioApi.Tests/PortfolioApi.Tests.csproj
+```
+
+You should see **13 passed** — P&L calculation tests plus `HoldingsService` business-rule tests.
 
 ### If something does not load
 
@@ -96,14 +107,16 @@ Think of three parts working together:
 | **Summary bar** | Total market value, total P&L, how many positions you have |
 | **Live updates** | Stays connected with **SignalR**; server **pushes** new holdings when prices or positions change |
 | **Live badge** | Shows Connected / Reconnecting / Offline |
-| **Table controls** | Search by ticker, filter by profit/loss, sort columns, paginate (5 / 10 / 25 per page) |
+| **Table controls** | Search by ticker, filter by profit/loss, sort columns, paginate (5 / 10 / 25 per page); footer shows `Showing X of Y positions` |
 
 ### Server (`PortfolioApi`)
 
 | Part | What it does |
 |------|----------------|
 | **API** | Answers requests: list holdings, add, delete, get prices |
-| **Business rules** | No duplicate ticker; quantity and price must be positive; P&L = (current price − what you paid) × quantity |
+| **Business rules** | No duplicate ticker; quantity and purchase price must be positive; only seeded tickers can be added |
+| **P&L math** | `HoldingValuation` — market value = current price × quantity; unrealized P&L = (current − purchase) × quantity |
+| **Unit tests** | `PortfolioApi.Tests` — xUnit + Moq; covers valuation formula and `HoldingsService` |
 | **Price simulator** | Every **10 seconds**, nudges each stock price up or down by up to about 2% |
 | **Real-time hub** | After prices change (or you add/delete), broadcasts fresh holdings to every open browser |
 | **Database** | Two tables: **Holdings** (what you own) and **Prices** (latest simulated price per ticker) |
@@ -121,8 +134,9 @@ Think of three parts working together:
 ### Folders in this repo
 
 ```
-PortfolioApi/           → Server code
-portfolio-dashboard/    → Website code
+PortfolioApi/           → Server code (API, services, EF Core, SignalR hub)
+PortfolioApi.Tests/     → Unit tests (P&L + holdings service)
+portfolio-dashboard/    → Website code (React + Vite)
 ```
 
 ---
@@ -180,9 +194,20 @@ Rough plan:
 
 The first pain points at huge scale would be the small database file and every server trying to update prices at once.
 
+### Unit tests
+
+P&L logic lives in **`HoldingValuation`** so the formula is tested without a database. **`HoldingsServiceTests`** mock the repositories and verify mapping plus rules (duplicate ticker, unsupported ticker, invalid quantity).
+
+| Test file | Covers |
+|-----------|--------|
+| `HoldingValuationTests` | Profit, loss, breakeven, fractional quantity, missing price feed (0 current price), case-insensitive ticker lookup |
+| `HoldingsServiceTests` | `GetAllAsync` mapping, `AddAsync` validation and successful add |
+
+Run: `dotnet test PortfolioApi.Tests/PortfolioApi.Tests.csproj`
+
 ### What would you do with 2 more hours?
 
-Add **automated tests** for P&L math and holdings CRUD, plus **server-side paging** (`GET /api/holdings?page=&pageSize=&ticker=&pnl=`) once portfolios grow past a few dozen rows — client-side filter/page is fine for the demo, but production loads should not ship entire portfolios on every SignalR push.
+Add **integration tests** (API + in-memory SQLite), **server-side paging** (`GET /api/holdings?page=&pageSize=&ticker=&pnl=`) once portfolios grow past a few dozen rows — client-side filter/page is fine for the demo, but production loads should not ship entire portfolios on every SignalR push.
 
 ### Holdings table: filter & pagination (production note)
 
@@ -195,11 +220,12 @@ The table filters and pages **in the browser** on the data you already have. Tha
 | Topic | Detail |
 |-------|--------|
 | Server stack | .NET 8, ASP.NET Core, EF Core, SQLite, FluentValidation, Serilog, Swagger |
+| Test stack | xUnit, Moq, `Microsoft.NET.Test.Sdk` — project `PortfolioApi.Tests` (net8.0) |
 | Website stack | React 19, Vite, Redux Toolkit, RTK Query, `@microsoft/signalr` |
 | Real-time | Hub `/hubs/portfolio`, event `HoldingsUpdated`; Vite proxies `/hubs` with WebSockets |
-| Table UX | `useHoldingsTableControls` — client filter/sort/page; see hook comment for server-side scale-up |
-| P&L | `(currentPrice - purchasePrice) × quantity` on the server (`HoldingValuation`) |
-| Unit tests | `dotnet test PortfolioApi.Tests/PortfolioApi.Tests.csproj` — P&L math + `HoldingsService` rules |
+| Table UX | `useHoldingsTableControls` — client filter/sort/page; pagination label in `HoldingsTablePagination` |
+| P&L | `PortfolioApi/Services/HoldingValuation.cs` — used by `HoldingsService.MapToResponse` |
+| Run tests | `dotnet test PortfolioApi.Tests/PortfolioApi.Tests.csproj` (expect 13 passed) |
 | Dev proxy | `/api` and `/hubs` → `http://localhost:5205` (`portfolio-dashboard/vite.config.js`) |
 | Reset database | Stop server, delete `PortfolioApi/portfolio.db`, run again |
 
